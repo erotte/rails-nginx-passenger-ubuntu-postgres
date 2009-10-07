@@ -1,19 +1,36 @@
-rails-nginx-passenger-ubuntu
+rails-nginx-passenger-ubuntu-postgres
 ============================
 
-My notes on setting up a simple production server with ubuntu, nginx, passenger and mysql for rails.
+My notes on setting up a simple production server with ubuntu 8.04 (hardy), nginx, passenger and postgres for rails.
+
+Check Ubuntu Version with
+    cat /etc/issue
+
+Setup ssh public key authentification
+
+    mkdir ~/.ssh
+    touch ~/.ssh/authorized_keys
+    chmod go-rwx ~/.ssh/authorized_keys
+
 
 Aliases
 -------
+My favourite aliases:
 
-    echo "alias ll='ls -l'" >> ~/.bash_aliases
-    
-edit .bashrc and uncomment the loadig of .bash_aliases
+    alias ls="ls -FG"
+    alias ll="ls -l"
+    alias la="ls -a"
+    alias lll="ls -al"
+    alias topc="top -o cpu"
+    alias psgrep="ps aux | grep"
+    alias cdw="cd $WORK_DIR"
 
-If you have trouble with PATH that changes when doing sudo, see http://stackoverflow.com/questions/257616/sudo-changes-path-why then add the following line to the same file
+    alias gemi="sudo gem install --no-ri --no-rdoc"
+    alias gemu="sudo gem uninstall"
+    alias gem_search="gem search -r"
 
-    alias sudo='sudo env PATH=$PATH'
-    
+Add your aliases to .bash_aliases. 
+Edit .bashrc and uncomment the loadig of .bash_aliases
 
 Update and upgrade the system
 -------------------------------
@@ -21,13 +38,6 @@ Update and upgrade the system
     sudo apt-get update
     sudo apt-get upgrade
 
-Configure timezone
--------------------
-
-    sudo dpkg-reconfigure tzdata
-    sudo apt-get install ntp
-    sudo ntpdate ntp.ubuntu.com # Update time
-    
 Verify that you have to correct date and time with
 
     date
@@ -43,19 +53,41 @@ Add 127.0.0.1 your-hostname
     
 Write your-hostname in 
     
-    sudo vim /etc/hostname
+    (sudo) vim /etc/hostname
     
 Verify that hostname is set
     
     hostname
 
-Install mysql
----------------
+Install postgres https://help.ubuntu.com/community/PostgreSQL#Hardy
+----------------
 
-This should be installed before Ruby Enterprise Edition becouse that will install the mysql gem.
+    (sudo) apt-get install postgresql postgresql-client postgresql-contrib postgresql-server-dev-8.3
 
-    sudo apt-get install mysql-server libmysqlclient15-dev
-    
+Setup Database
+---------------    
+    (sudo) -u postgres psql postgres
+
+Set a password for the "postgres" database role using the command:
+
+    \password postgres
+
+Create database
+
+     sudo -u postgres createdb <mydb>
+     
+Alternative Server Setup with 'ident sameuser' authentication
+==============================================================
+
+     sudo -u postgres createuser --superuser $USER
+
+     createdb $USER
+     Connecting to your own database to try out some SQL should now be as easy as:
+
+     psql
+     Creating additional database is just as easy, so for example, after running this:
+
+     createdb amarokdb    
     
 Gemrc
 -------
@@ -72,28 +104,26 @@ Add the following lines to ~/.gemrc, this will speed up gem installation and pre
 Ruby Enterprise Edition
 ------------------------
 
-Check for newer version at http://www.rubyenterpriseedition.com/download.html
-
 Install package required by ruby enterprise, C compiler, Zlib development headers, OpenSSL development headers, GNU Readline development headers
 
     sudo apt-get install build-essential zlib1g-dev libssl-dev libreadline5-dev
 
 Download and install Ruby Enterprise Edition
+=============================================
+Ruby Enterprise Edition provides Debian install packages.
+Check for a current version at http://www.rubyenterpriseedition.com/download.html
 
-    wget http://rubyforge.org/frs/download.php/51100/ruby-enterprise-1.8.6-20090201.tar.gz
-    tar xvfz ruby-enterprise-1.8.6-20090201.tar.gz 
-    rm ruby-enterprise-1.8.6-20090201.tar.gz 
-    cd ruby-enterprise-1.8.6-20090201/
-    sudo ./installer
-
-Add Ruby Enterprise bin to PATH
-
-    echo "export PATH=/opt/ruby-enterprise-1.8.6-20090201/bin:$PATH" >> ~/.profile && . ~/.profile
+Check out your System Architecture. There are Packages for 64 and 32 bit Ubuntu Systems.
+    getconf LONG_BIT
+     
+    wget http://rubyforge.org/frs/download.php/64478/ruby-enterprise_1.8.7-20090928_amd64.deb    
+    dpkg -i ruby-enterprise_1.8.7-20090928_amd64.deb
+    
     
 Verify the ruby installation
 
     ruby -v
-    ruby 1.8.6 (2008-08-08 patchlevel 286) [i686-linux]
+    ruby 1.8.7 (2009-06-12 patchlevel 174) [x86_64-linux], MBARI 0x6770, Ruby Enterprise Edition 20090928
 
 
 Installing git
@@ -104,13 +134,13 @@ Installing git
 Nginx
 -------
 
-    sudo /opt/ruby-enterprise-1.8.6-20090201/bin/passenger-install-nginx-module
+    passenger-install-nginx-module
 
 Select option 1. Yes: download, compile and install Nginx for me. (recommended)
 
 When finished, verify nginx source code is located under /tmp
 
-    $ ll /tmp/
+    ll /tmp/
     drwxr-xr-x 8 deploy deploy    4096 2009-04-18 17:48 nginx-0.6.36
     -rw-r--r-- 1 root   root    528425 2009-04-02 08:49 nginx-0.6.36.tar.gz
     drwxrwxrwx 7   1169   1169    4096 2009-04-18 17:56 pcre-7.8
@@ -118,7 +148,7 @@ When finished, verify nginx source code is located under /tmp
     
 Run the passenger-install-nginx-module once more if you want to add --with-http_ssl_module 
 
-    $ sudo /opt/ruby-enterprise-1.8.6-20090201/bin/passenger-install-nginx-module
+    passenger-install-nginx-module
     
 Select option 2. No: I want to customize my Nginx installation. (for advanced users)
 
@@ -161,6 +191,10 @@ Verify that you can start and stop nginx with init script
     
 If you want, reboot and see so the webserver is starting as it should.
 
+Installing the Ruby Postgres Adapter
+-------------------------------------
+ sudo gem install pg
+
 Installning ImageMagick and RMagick
 -----------------------------------
 
@@ -199,10 +233,10 @@ Install RMagick
 Test a rails applicaton with nginx
 ----------------------------------
 
-    rails -d mysql testapp
+    rails -d postgresql testapp  (leave -d blank for sqlite)
     cd testapp
     
-Enter your mysql password
+Enter your postgres password
     
     vim database.yml
     rake db:create:all
@@ -211,8 +245,10 @@ Enter your mysql password
     
 Check so the rails app start as normal
     
-    ruby script/server
+    ruby script/server -e production
 
+Copy the file "nginx" from this project to /etc/init.d (or get a new one from http://wiki.nginx.org/Nginx-init-ubuntu)
+    /usr/sbin/update-rc.d -f nginx defaults
     sudo vim /opt/nginx/conf/nginx.conf
     
 Add a new virutal host
