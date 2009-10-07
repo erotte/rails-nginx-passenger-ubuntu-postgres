@@ -12,6 +12,15 @@ Setup ssh public key authentification
     touch ~/.ssh/authorized_keys
     chmod go-rwx ~/.ssh/authorized_keys
 
+On your local machine:
+  ssh-keygen
+
+Copy public key to remote machine:
+    cd $HOME/.ssh
+    cat identity.pub | ssh remoteuser@remotehost "cat >> .ssh/authorized_keys"
+
+Now you should be able to log in to your server with a simple: 
+    ssh remoteuser@remotehost
 
 Aliases
 -------
