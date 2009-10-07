@@ -19,7 +19,7 @@ Copy public key to remote machine:
     cd $HOME/.ssh
     cat identity.pub | ssh remoteuser@remotehost "cat >> .ssh/authorized_keys"
 
-Now you should be able to log in to your server with a simple: 
+Now you should be able to log in to your server without a password: 
     ssh remoteuser@remotehost
 
 Aliases
